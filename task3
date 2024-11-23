@@ -1,0 +1,84 @@
+// Input data from the form submission
+let companySize = inputData.companySize || null;
+let budget = inputData.budget || null;
+let industry = inputData.industry || null;
+let urgency = inputData.urgency || null;
+let comments = inputData.comments || '';
+let salesReps = inputData.salesReps || []; // List of sales reps from Google Sheets
+
+// Validate required fields
+if (!companySize || !budget || !industry || !urgency || !comments) {
+    output = {
+        isValid: false,
+        message: "Incomplete data. Missing required fields."
+    };
+    return output;
+}
+
+// Scoring rules for company size, budget, industry, and urgency
+const companySizePoints = {
+    "1-50 employees": 10,
+    "51-200 employees": 20,
+    "201-1000 employees": 30,
+    "1000+ employees": 40
+};
+
+const budgetPoints = {
+    "Less than $10,000": 10,
+    "$10,000 - $50,000": 20,
+    "$50,001 - $100,000": 30,
+    "More than $100,000": 40
+};
+
+const industryPoints = {
+    "Technology": 20,
+    "Finance": 15,
+    "Healthcare": 10,
+    "Retail": 10,
+    "Other": 5
+};
+
+const urgencyPoints = {
+    "Immediate (within 1 month)": 30,
+    "Short-term (1-3 months)": 20,
+    "Medium-term (3-6 months)": 10,
+    "Long-term (6+ months)": 5
+};
+
+// Calculate the lead score based on the answers
+let leadScore = 0;
+leadScore += companySizePoints[companySize] || 0;
+leadScore += budgetPoints[budget] || 0;
+leadScore += industryPoints[industry] || 0;
+leadScore += urgencyPoints[urgency] || 0;
+
+// Keyword extraction from the comments field (basic example)
+let keywords = comments.toLowerCase().split(/\s+/).filter(word => word.length > 3); // Extract words with more than 3 characters
+
+// Categorize based on keywords (basic categorization example)
+let category = '';
+if (keywords.includes("urgent") || keywords.includes("priority")) {
+    category = 'High-Priority';
+} else if (keywords.includes("follow-up")) {
+    category = 'Nurturing Campaign';
+} else {
+    category = 'General';
+}
+
+// Assign the lead to a sales rep in round-robin fashion
+let assignedRep = '';
+if (salesReps.length > 0) {
+    // Round-robin assignment: use modulo to distribute leads evenly
+    assignedRep = salesReps[leadScore % salesReps.length]; // Use the lead score to assign reps in a round-robin fashion
+} else {
+    assignedRep = 'Unassigned'; // Fallback if no sales reps are available
+}
+
+// Output data for Zapier
+output = {
+    isValid: true,
+    leadScore: leadScore,
+    assignedRep: assignedRep,
+    category: category,
+    message: `Lead assigned to ${assignedRep} and categorized as ${category}.`
+};
